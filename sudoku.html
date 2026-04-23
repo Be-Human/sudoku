@@ -1,0 +1,501 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>数独游戏</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Arial', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        h1 {
+            color: white;
+            margin-bottom: 20px;
+            font-size: 2.5rem;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+        }
+
+        .game-container {
+            background: white;
+            border-radius: 15px;
+            padding: 20px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+        }
+
+        .sudoku-board {
+            display: grid;
+            grid-template-columns: repeat(9, 50px);
+            grid-template-rows: repeat(9, 50px);
+            gap: 1px;
+            background: #333;
+            border: 3px solid #333;
+            margin: 20px 0;
+        }
+
+        .cell {
+            background: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .cell:hover {
+            background: #e8f4fd;
+        }
+
+        .cell.selected {
+            background: #b3d9ff;
+        }
+
+        .cell.initial {
+            color: #333;
+            background: #f0f0f0;
+            cursor: default;
+        }
+
+        .cell.user-input {
+            color: #2196F3;
+        }
+
+        .cell.error {
+            background: #ffebee;
+            color: #f44336;
+        }
+
+        .cell:nth-child(3n) {
+            border-right: 2px solid #333;
+        }
+
+        .cell:nth-child(9n) {
+            border-right: none;
+        }
+
+        .cell:nth-child(n+19):nth-child(-n+27),
+        .cell:nth-child(n+46):nth-child(-n+54) {
+            border-bottom: 2px solid #333;
+        }
+
+        .controls {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            margin-top: 10px;
+        }
+
+        .number-buttons {
+            display: flex;
+            gap: 5px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .num-btn {
+            width: 45px;
+            height: 45px;
+            font-size: 1.3rem;
+            font-weight: bold;
+            border: none;
+            border-radius: 8px;
+            background: #2196F3;
+            color: white;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .num-btn:hover {
+            background: #1976D2;
+            transform: translateY(-2px);
+        }
+
+        .num-btn:active {
+            transform: translateY(0);
+        }
+
+        .action-buttons {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+        }
+
+        .action-btn {
+            padding: 12px 24px;
+            font-size: 1rem;
+            font-weight: bold;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .check-btn {
+            background: #4CAF50;
+            color: white;
+        }
+
+        .check-btn:hover {
+            background: #388E3C;
+        }
+
+        .clear-btn {
+            background: #FF9800;
+            color: white;
+        }
+
+        .clear-btn:hover {
+            background: #F57C00;
+        }
+
+        .new-game-btn {
+            background: #9C27B0;
+            color: white;
+        }
+
+        .new-game-btn:hover {
+            background: #7B1FA2;
+        }
+
+        .message {
+            text-align: center;
+            padding: 15px;
+            border-radius: 8px;
+            font-size: 1.1rem;
+            font-weight: bold;
+            min-height: 50px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-top: 10px;
+        }
+
+        .message.success {
+            background: #E8F5E9;
+            color: #2E7D32;
+        }
+
+        .message.error {
+            background: #FFEBEE;
+            color: #C62828;
+        }
+
+        .message.info {
+            background: #E3F2FD;
+            color: #1565C0;
+        }
+
+        @media (max-width: 500px) {
+            .sudoku-board {
+                grid-template-columns: repeat(9, 40px);
+                grid-template-rows: repeat(9, 40px);
+            }
+
+            .cell {
+                font-size: 1.2rem;
+            }
+
+            h1 {
+                font-size: 1.8rem;
+            }
+
+            .num-btn {
+                width: 38px;
+                height: 38px;
+                font-size: 1.1rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <h1>数独游戏</h1>
+    
+    <div class="game-container">
+        <div class="sudoku-board" id="board"></div>
+        
+        <div class="controls">
+            <div class="number-buttons" id="numberButtons"></div>
+            
+            <div class="action-buttons">
+                <button class="action-btn check-btn" onclick="checkBoard()">检查答案</button>
+                <button class="action-btn clear-btn" onclick="clearInput()">清除输入</button>
+                <button class="action-btn new-game-btn" onclick="newGame()">新游戏</button>
+            </div>
+        </div>
+        
+        <div class="message" id="message"></div>
+    </div>
+
+    <script>
+        let selectedCell = null;
+        let initialBoard = [];
+        let solutionBoard = [];
+
+        const puzzles = [
+            {
+                puzzle: [
+                    [5, 3, 0, 0, 7, 0, 0, 0, 0],
+                    [6, 0, 0, 1, 9, 5, 0, 0, 0],
+                    [0, 9, 8, 0, 0, 0, 0, 6, 0],
+                    [8, 0, 0, 0, 6, 0, 0, 0, 3],
+                    [4, 0, 0, 8, 0, 3, 0, 0, 1],
+                    [7, 0, 0, 0, 2, 0, 0, 0, 6],
+                    [0, 6, 0, 0, 0, 0, 2, 8, 0],
+                    [0, 0, 0, 4, 1, 9, 0, 0, 5],
+                    [0, 0, 0, 0, 8, 0, 0, 7, 9]
+                ],
+                solution: [
+                    [5, 3, 4, 6, 7, 8, 9, 1, 2],
+                    [6, 7, 2, 1, 9, 5, 3, 4, 8],
+                    [1, 9, 8, 3, 4, 2, 5, 6, 7],
+                    [8, 5, 9, 7, 6, 1, 4, 2, 3],
+                    [4, 2, 6, 8, 5, 3, 7, 9, 1],
+                    [7, 1, 3, 9, 2, 4, 8, 5, 6],
+                    [9, 6, 1, 5, 3, 7, 2, 8, 4],
+                    [2, 8, 7, 4, 1, 9, 6, 3, 5],
+                    [3, 4, 5, 2, 8, 6, 1, 7, 9]
+                ]
+            },
+            {
+                puzzle: [
+                    [0, 0, 0, 2, 6, 0, 7, 0, 1],
+                    [6, 8, 0, 0, 7, 0, 0, 9, 0],
+                    [1, 9, 0, 0, 0, 4, 5, 0, 0],
+                    [8, 2, 0, 1, 0, 0, 0, 4, 0],
+                    [0, 0, 4, 6, 0, 2, 9, 0, 0],
+                    [0, 5, 0, 0, 0, 3, 0, 2, 8],
+                    [0, 0, 9, 3, 0, 0, 0, 7, 4],
+                    [0, 4, 0, 0, 5, 0, 0, 3, 6],
+                    [7, 0, 3, 0, 1, 8, 0, 0, 0]
+                ],
+                solution: [
+                    [4, 3, 5, 2, 6, 9, 7, 8, 1],
+                    [6, 8, 2, 5, 7, 1, 4, 9, 3],
+                    [1, 9, 7, 8, 3, 4, 5, 6, 2],
+                    [8, 2, 6, 1, 9, 5, 3, 4, 7],
+                    [3, 7, 4, 6, 8, 2, 9, 1, 5],
+                    [9, 5, 1, 7, 4, 3, 6, 2, 8],
+                    [5, 1, 9, 3, 2, 6, 8, 7, 4],
+                    [2, 4, 8, 9, 5, 7, 1, 3, 6],
+                    [7, 6, 3, 4, 1, 8, 2, 5, 9]
+                ]
+            },
+            {
+                puzzle: [
+                    [0, 0, 0, 0, 0, 0, 0, 0, 0],
+                    [0, 0, 9, 8, 0, 5, 1, 0, 0],
+                    [0, 5, 1, 9, 0, 7, 4, 2, 0],
+                    [0, 6, 7, 3, 0, 4, 9, 8, 0],
+                    [0, 0, 0, 0, 0, 0, 0, 0, 0],
+                    [0, 2, 4, 7, 0, 8, 3, 6, 0],
+                    [0, 9, 8, 5, 0, 2, 6, 1, 0],
+                    [0, 0, 3, 6, 0, 9, 8, 0, 0],
+                    [0, 0, 0, 0, 0, 0, 0, 0, 0]
+                ],
+                solution: [
+                    [9, 8, 2, 4, 3, 6, 7, 5, 1],
+                    [3, 4, 9, 8, 2, 5, 1, 7, 6],
+                    [6, 5, 1, 9, 7, 4, 2, 8, 3],
+                    [1, 6, 7, 3, 9, 2, 5, 4, 8],
+                    [8, 3, 5, 1, 4, 7, 6, 9, 2],
+                    [2, 9, 4, 5, 6, 8, 3, 1, 7],
+                    [5, 7, 8, 2, 1, 9, 4, 6, 3],
+                    [4, 1, 6, 7, 8, 3, 9, 2, 5],
+                    [9, 2, 3, 6, 5, 4, 8, 7, 1]
+                ]
+            }
+        ];
+
+        function initGame() {
+            createBoard();
+            createNumberButtons();
+            newGame();
+        }
+
+        function createBoard() {
+            const board = document.getElementById('board');
+            board.innerHTML = '';
+            
+            for (let i = 0; i < 9; i++) {
+                for (let j = 0; j < 9; j++) {
+                    const cell = document.createElement('div');
+                    cell.className = 'cell';
+                    cell.dataset.row = i;
+                    cell.dataset.col = j;
+                    cell.addEventListener('click', () => selectCell(cell));
+                    board.appendChild(cell);
+                }
+            }
+        }
+
+        function createNumberButtons() {
+            const container = document.getElementById('numberButtons');
+            container.innerHTML = '';
+            
+            for (let i = 1; i <= 9; i++) {
+                const btn = document.createElement('button');
+                btn.className = 'num-btn';
+                btn.textContent = i;
+                btn.addEventListener('click', () => inputNumber(i));
+                container.appendChild(btn);
+            }
+            
+            const deleteBtn = document.createElement('button');
+            deleteBtn.className = 'num-btn';
+            deleteBtn.textContent = '⌫';
+            deleteBtn.addEventListener('click', () => clearCell());
+            container.appendChild(deleteBtn);
+        }
+
+        function newGame() {
+            const randomIndex = Math.floor(Math.random() * puzzles.length);
+            const puzzle = puzzles[randomIndex];
+            
+            initialBoard = JSON.parse(JSON.stringify(puzzle.puzzle));
+            solutionBoard = JSON.parse(JSON.stringify(puzzle.solution));
+            
+            updateBoard();
+            clearMessage();
+            selectedCell = null;
+        }
+
+        function updateBoard() {
+            const cells = document.querySelectorAll('.cell');
+            
+            cells.forEach((cell, index) => {
+                const row = Math.floor(index / 9);
+                const col = index % 9;
+                const value = initialBoard[row][col];
+                
+                cell.classList.remove('initial', 'user-input', 'selected', 'error');
+                cell.textContent = '';
+                
+                if (value !== 0) {
+                    cell.textContent = value;
+                    cell.classList.add('initial');
+                }
+            });
+        }
+
+        function selectCell(cell) {
+            document.querySelectorAll('.cell').forEach(c => c.classList.remove('selected'));
+            
+            if (cell.classList.contains('initial')) {
+                return;
+            }
+            
+            selectedCell = cell;
+            cell.classList.add('selected');
+        }
+
+        function inputNumber(num) {
+            if (!selectedCell) return;
+            
+            const row = parseInt(selectedCell.dataset.row);
+            const col = parseInt(selectedCell.dataset.col);
+            
+            if (initialBoard[row][col] !== 0) return;
+            
+            selectedCell.textContent = num;
+            selectedCell.classList.remove('error');
+            selectedCell.classList.add('user-input');
+        }
+
+        function clearCell() {
+            if (!selectedCell) return;
+            
+            const row = parseInt(selectedCell.dataset.row);
+            const col = parseInt(selectedCell.dataset.col);
+            
+            if (initialBoard[row][col] !== 0) return;
+            
+            selectedCell.textContent = '';
+            selectedCell.classList.remove('error', 'user-input');
+        }
+
+        function clearInput() {
+            const cells = document.querySelectorAll('.cell');
+            
+            cells.forEach(cell => {
+                if (!cell.classList.contains('initial')) {
+                    cell.textContent = '';
+                    cell.classList.remove('error', 'user-input');
+                }
+            });
+            
+            clearMessage();
+        }
+
+        function checkBoard() {
+            const cells = document.querySelectorAll('.cell');
+            let hasError = false;
+            let isComplete = true;
+            
+            cells.forEach((cell, index) => {
+                const row = Math.floor(index / 9);
+                const col = index % 9;
+                const userValue = cell.textContent ? parseInt(cell.textContent) : 0;
+                const correctValue = solutionBoard[row][col];
+                
+                cell.classList.remove('error');
+                
+                if (userValue === 0) {
+                    isComplete = false;
+                } else if (userValue !== correctValue) {
+                    cell.classList.add('error');
+                    hasError = true;
+                }
+            });
+            
+            if (hasError) {
+                showMessage('存在错误！请检查红色标记的格子。', 'error');
+            } else if (!isComplete) {
+                showMessage('目前填写正确，继续完成剩余格子！', 'info');
+            } else {
+                showMessage('🎉 恭喜！数独完成，答案正确！', 'success');
+            }
+        }
+
+        function showMessage(text, type) {
+            const messageEl = document.getElementById('message');
+            messageEl.textContent = text;
+            messageEl.className = `message ${type}`;
+        }
+
+        function clearMessage() {
+            const messageEl = document.getElementById('message');
+            messageEl.textContent = '';
+            messageEl.className = 'message';
+        }
+
+        document.addEventListener('keydown', (e) => {
+            if (!selectedCell) return;
+            
+            if (e.key >= '1' && e.key <= '9') {
+                e.preventDefault();
+                inputNumber(parseInt(e.key));
+            } else if (e.key === 'Delete' || e.key === 'Backspace') {
+                e.preventDefault();
+                clearCell();
+            }
+        });
+
+        initGame();
+    </script>
+</body>
+</html>
