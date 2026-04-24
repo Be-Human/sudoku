@@ -211,6 +211,62 @@
             color: #1565C0;
         }
 
+        .top-controls {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            padding: 10px;
+            background: #f5f5f5;
+            border-radius: 8px;
+        }
+
+        .difficulty-selector {
+            display: flex;
+            gap: 8px;
+        }
+
+        .difficulty-btn {
+            padding: 8px 16px;
+            font-size: 0.9rem;
+            font-weight: bold;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            background: white;
+            color: #666;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .difficulty-btn:hover {
+            background: #e3f2fd;
+            border-color: #2196F3;
+            color: #2196F3;
+        }
+
+        .difficulty-btn.active {
+            background: #2196F3;
+            border-color: #2196F3;
+            color: white;
+        }
+
+        .timer {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: #333;
+            font-family: 'Courier New', monospace;
+            background: white;
+            padding: 8px 16px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .cell.conflict {
+            background: #fff3e0;
+            color: #f57c00;
+            border: 2px solid #ff9800 !important;
+        }
+
         @media (max-width: 500px) {
             .game-container {
                 padding: 10px;
@@ -251,6 +307,15 @@
     <h1>数独游戏</h1>
     
     <div class="game-container">
+        <div class="top-controls">
+            <div class="difficulty-selector" id="difficultySelector">
+                <button class="difficulty-btn active" data-difficulty="easy" onclick="selectDifficulty('easy')">初级</button>
+                <button class="difficulty-btn" data-difficulty="medium" onclick="selectDifficulty('medium')">中级</button>
+                <button class="difficulty-btn" data-difficulty="hard" onclick="selectDifficulty('hard')">高级</button>
+            </div>
+            <div class="timer" id="timer">00:00</div>
+        </div>
+        
         <div class="sudoku-board" id="board"></div>
         
         <div class="controls">
@@ -270,81 +335,240 @@
         let selectedCell = null;
         let initialBoard = [];
         let solutionBoard = [];
+        let currentDifficulty = 'easy';
+        let timerInterval = null;
+        let seconds = 0;
 
-        const puzzles = [
-            {
-                puzzle: [
-                    [5, 3, 0, 0, 7, 0, 0, 0, 0],
-                    [6, 0, 0, 1, 9, 5, 0, 0, 0],
-                    [0, 9, 8, 0, 0, 0, 0, 6, 0],
-                    [8, 0, 0, 0, 6, 0, 0, 0, 3],
-                    [4, 0, 0, 8, 0, 3, 0, 0, 1],
-                    [7, 0, 0, 0, 2, 0, 0, 0, 6],
-                    [0, 6, 0, 0, 0, 0, 2, 8, 0],
-                    [0, 0, 0, 4, 1, 9, 0, 0, 5],
-                    [0, 0, 0, 0, 8, 0, 0, 7, 9]
-                ],
-                solution: [
-                    [5, 3, 4, 6, 7, 8, 9, 1, 2],
-                    [6, 7, 2, 1, 9, 5, 3, 4, 8],
-                    [1, 9, 8, 3, 4, 2, 5, 6, 7],
-                    [8, 5, 9, 7, 6, 1, 4, 2, 3],
-                    [4, 2, 6, 8, 5, 3, 7, 9, 1],
-                    [7, 1, 3, 9, 2, 4, 8, 5, 6],
-                    [9, 6, 1, 5, 3, 7, 2, 8, 4],
-                    [2, 8, 7, 4, 1, 9, 6, 3, 5],
-                    [3, 4, 5, 2, 8, 6, 1, 7, 9]
-                ]
-            },
-            {
-                puzzle: [
-                    [0, 0, 0, 2, 6, 0, 7, 0, 1],
-                    [6, 8, 0, 0, 7, 0, 0, 9, 0],
-                    [1, 9, 0, 0, 0, 4, 5, 0, 0],
-                    [8, 2, 0, 1, 0, 0, 0, 4, 0],
-                    [0, 0, 4, 6, 0, 2, 9, 0, 0],
-                    [0, 5, 0, 0, 0, 3, 0, 2, 8],
-                    [0, 0, 9, 3, 0, 0, 0, 7, 4],
-                    [0, 4, 0, 0, 5, 0, 0, 3, 6],
-                    [7, 0, 3, 0, 1, 8, 0, 0, 0]
-                ],
-                solution: [
-                    [4, 3, 5, 2, 6, 9, 7, 8, 1],
-                    [6, 8, 2, 5, 7, 1, 4, 9, 3],
-                    [1, 9, 7, 8, 3, 4, 5, 6, 2],
-                    [8, 2, 6, 1, 9, 5, 3, 4, 7],
-                    [3, 7, 4, 6, 8, 2, 9, 1, 5],
-                    [9, 5, 1, 7, 4, 3, 6, 2, 8],
-                    [5, 1, 9, 3, 2, 6, 8, 7, 4],
-                    [2, 4, 8, 9, 5, 7, 1, 3, 6],
-                    [7, 6, 3, 4, 1, 8, 2, 5, 9]
-                ]
-            },
-            {
-                puzzle: [
-                    [8, 0, 0, 0, 0, 0, 0, 0, 0],
-                    [0, 0, 3, 6, 0, 0, 0, 0, 0],
-                    [0, 7, 0, 0, 9, 0, 2, 0, 0],
-                    [0, 5, 0, 0, 0, 7, 0, 0, 0],
-                    [0, 0, 0, 0, 4, 5, 7, 0, 0],
-                    [0, 0, 0, 1, 0, 0, 0, 3, 0],
-                    [0, 0, 1, 0, 0, 0, 0, 6, 8],
-                    [0, 0, 8, 5, 0, 0, 0, 1, 0],
-                    [0, 9, 0, 0, 0, 0, 4, 0, 0]
-                ],
-                solution: [
-                    [8, 1, 2, 7, 5, 3, 6, 4, 9],
-                    [9, 4, 3, 6, 8, 2, 1, 7, 5],
-                    [6, 7, 5, 4, 9, 1, 2, 8, 3],
-                    [1, 5, 4, 2, 3, 7, 8, 9, 6],
-                    [3, 6, 9, 8, 4, 5, 7, 2, 1],
-                    [2, 8, 7, 1, 6, 9, 5, 3, 4],
-                    [5, 2, 1, 9, 7, 4, 3, 6, 8],
-                    [4, 3, 8, 5, 2, 6, 9, 1, 7],
-                    [7, 9, 6, 3, 1, 8, 4, 5, 2]
-                ]
-            }
-        ];
+        const difficultySettings = {
+            easy: { name: '初级', holes: 36 },
+            medium: { name: '中级', holes: 46 },
+            hard: { name: '高级', holes: 52 }
+        };
+
+        const puzzlesByDifficulty = {
+            easy: [
+                {
+                    puzzle: [
+                        [5, 3, 4, 0, 7, 8, 0, 1, 2],
+                        [6, 7, 2, 1, 9, 5, 3, 4, 8],
+                        [1, 0, 8, 3, 4, 2, 5, 6, 7],
+                        [8, 5, 9, 7, 6, 1, 4, 2, 3],
+                        [4, 2, 6, 8, 5, 3, 7, 9, 1],
+                        [7, 1, 3, 9, 2, 4, 8, 5, 6],
+                        [9, 6, 1, 5, 3, 7, 2, 8, 4],
+                        [2, 8, 7, 4, 1, 9, 6, 3, 5],
+                        [3, 4, 5, 2, 8, 6, 1, 7, 0]
+                    ],
+                    solution: [
+                        [5, 3, 4, 6, 7, 8, 9, 1, 2],
+                        [6, 7, 2, 1, 9, 5, 3, 4, 8],
+                        [1, 9, 8, 3, 4, 2, 5, 6, 7],
+                        [8, 5, 9, 7, 6, 1, 4, 2, 3],
+                        [4, 2, 6, 8, 5, 3, 7, 9, 1],
+                        [7, 1, 3, 9, 2, 4, 8, 5, 6],
+                        [9, 6, 1, 5, 3, 7, 2, 8, 4],
+                        [2, 8, 7, 4, 1, 9, 6, 3, 5],
+                        [3, 4, 5, 2, 8, 6, 1, 7, 9]
+                    ]
+                },
+                {
+                    puzzle: [
+                        [4, 3, 5, 2, 6, 9, 7, 8, 1],
+                        [6, 8, 2, 5, 7, 1, 4, 9, 3],
+                        [1, 9, 7, 8, 3, 0, 5, 6, 2],
+                        [8, 2, 6, 1, 9, 5, 3, 4, 7],
+                        [3, 7, 4, 6, 8, 2, 9, 1, 0],
+                        [9, 5, 1, 7, 4, 3, 6, 2, 8],
+                        [5, 1, 9, 3, 2, 6, 8, 7, 4],
+                        [2, 4, 8, 9, 5, 7, 1, 3, 6],
+                        [7, 6, 3, 4, 1, 8, 2, 5, 9]
+                    ],
+                    solution: [
+                        [4, 3, 5, 2, 6, 9, 7, 8, 1],
+                        [6, 8, 2, 5, 7, 1, 4, 9, 3],
+                        [1, 9, 7, 8, 3, 4, 5, 6, 2],
+                        [8, 2, 6, 1, 9, 5, 3, 4, 7],
+                        [3, 7, 4, 6, 8, 2, 9, 1, 5],
+                        [9, 5, 1, 7, 4, 3, 6, 2, 8],
+                        [5, 1, 9, 3, 2, 6, 8, 7, 4],
+                        [2, 4, 8, 9, 5, 7, 1, 3, 6],
+                        [7, 6, 3, 4, 1, 8, 2, 5, 9]
+                    ]
+                },
+                {
+                    puzzle: [
+                        [8, 1, 2, 7, 5, 3, 6, 4, 9],
+                        [9, 4, 3, 6, 8, 2, 1, 7, 5],
+                        [6, 7, 5, 4, 9, 1, 2, 8, 3],
+                        [1, 5, 4, 2, 3, 0, 8, 9, 6],
+                        [3, 6, 9, 8, 4, 5, 7, 2, 1],
+                        [2, 8, 7, 1, 6, 9, 5, 3, 4],
+                        [5, 2, 1, 9, 7, 4, 3, 6, 8],
+                        [4, 3, 8, 5, 2, 6, 9, 1, 7],
+                        [7, 9, 6, 3, 1, 8, 4, 5, 2]
+                    ],
+                    solution: [
+                        [8, 1, 2, 7, 5, 3, 6, 4, 9],
+                        [9, 4, 3, 6, 8, 2, 1, 7, 5],
+                        [6, 7, 5, 4, 9, 1, 2, 8, 3],
+                        [1, 5, 4, 2, 3, 7, 8, 9, 6],
+                        [3, 6, 9, 8, 4, 5, 7, 2, 1],
+                        [2, 8, 7, 1, 6, 9, 5, 3, 4],
+                        [5, 2, 1, 9, 7, 4, 3, 6, 8],
+                        [4, 3, 8, 5, 2, 6, 9, 1, 7],
+                        [7, 9, 6, 3, 1, 8, 4, 5, 2]
+                    ]
+                }
+            ],
+            medium: [
+                {
+                    puzzle: [
+                        [5, 3, 0, 0, 7, 0, 0, 0, 0],
+                        [6, 0, 0, 1, 9, 5, 0, 0, 0],
+                        [0, 9, 8, 0, 0, 0, 0, 6, 0],
+                        [8, 0, 0, 0, 6, 0, 0, 0, 3],
+                        [4, 0, 0, 8, 0, 3, 0, 0, 1],
+                        [7, 0, 0, 0, 2, 0, 0, 0, 6],
+                        [0, 6, 0, 0, 0, 0, 2, 8, 0],
+                        [0, 0, 0, 4, 1, 9, 0, 0, 5],
+                        [0, 0, 0, 0, 8, 0, 0, 7, 9]
+                    ],
+                    solution: [
+                        [5, 3, 4, 6, 7, 8, 9, 1, 2],
+                        [6, 7, 2, 1, 9, 5, 3, 4, 8],
+                        [1, 9, 8, 3, 4, 2, 5, 6, 7],
+                        [8, 5, 9, 7, 6, 1, 4, 2, 3],
+                        [4, 2, 6, 8, 5, 3, 7, 9, 1],
+                        [7, 1, 3, 9, 2, 4, 8, 5, 6],
+                        [9, 6, 1, 5, 3, 7, 2, 8, 4],
+                        [2, 8, 7, 4, 1, 9, 6, 3, 5],
+                        [3, 4, 5, 2, 8, 6, 1, 7, 9]
+                    ]
+                },
+                {
+                    puzzle: [
+                        [0, 0, 0, 2, 6, 0, 7, 0, 1],
+                        [6, 8, 0, 0, 7, 0, 0, 9, 0],
+                        [1, 9, 0, 0, 0, 4, 5, 0, 0],
+                        [8, 2, 0, 1, 0, 0, 0, 4, 0],
+                        [0, 0, 4, 6, 0, 2, 9, 0, 0],
+                        [0, 5, 0, 0, 0, 3, 0, 2, 8],
+                        [0, 0, 9, 3, 0, 0, 0, 7, 4],
+                        [0, 4, 0, 0, 5, 0, 0, 3, 6],
+                        [7, 0, 3, 0, 1, 8, 0, 0, 0]
+                    ],
+                    solution: [
+                        [4, 3, 5, 2, 6, 9, 7, 8, 1],
+                        [6, 8, 2, 5, 7, 1, 4, 9, 3],
+                        [1, 9, 7, 8, 3, 4, 5, 6, 2],
+                        [8, 2, 6, 1, 9, 5, 3, 4, 7],
+                        [3, 7, 4, 6, 8, 2, 9, 1, 5],
+                        [9, 5, 1, 7, 4, 3, 6, 2, 8],
+                        [5, 1, 9, 3, 2, 6, 8, 7, 4],
+                        [2, 4, 8, 9, 5, 7, 1, 3, 6],
+                        [7, 6, 3, 4, 1, 8, 2, 5, 9]
+                    ]
+                },
+                {
+                    puzzle: [
+                        [0, 0, 0, 0, 0, 0, 0, 0, 0],
+                        [0, 0, 0, 0, 0, 3, 0, 8, 5],
+                        [0, 0, 1, 0, 2, 0, 0, 0, 0],
+                        [0, 0, 0, 5, 0, 7, 0, 0, 0],
+                        [0, 0, 4, 0, 0, 0, 1, 0, 0],
+                        [0, 9, 0, 0, 0, 0, 0, 0, 0],
+                        [5, 0, 0, 0, 0, 0, 0, 7, 3],
+                        [0, 0, 2, 0, 1, 0, 0, 0, 0],
+                        [0, 0, 0, 0, 4, 0, 0, 0, 9]
+                    ],
+                    solution: [
+                        [9, 8, 7, 6, 5, 4, 3, 2, 1],
+                        [2, 4, 6, 1, 7, 3, 9, 8, 5],
+                        [3, 5, 1, 9, 2, 8, 7, 4, 6],
+                        [1, 2, 8, 5, 3, 7, 6, 9, 4],
+                        [6, 3, 4, 8, 9, 2, 1, 5, 7],
+                        [7, 9, 5, 4, 6, 1, 8, 3, 2],
+                        [5, 1, 9, 2, 8, 6, 4, 7, 3],
+                        [4, 7, 2, 3, 1, 9, 5, 6, 8],
+                        [8, 6, 3, 7, 4, 5, 2, 1, 9]
+                    ]
+                }
+            ],
+            hard: [
+                {
+                    puzzle: [
+                        [8, 0, 0, 0, 0, 0, 0, 0, 0],
+                        [0, 0, 3, 6, 0, 0, 0, 0, 0],
+                        [0, 7, 0, 0, 9, 0, 2, 0, 0],
+                        [0, 5, 0, 0, 0, 7, 0, 0, 0],
+                        [0, 0, 0, 0, 4, 5, 7, 0, 0],
+                        [0, 0, 0, 1, 0, 0, 0, 3, 0],
+                        [0, 0, 1, 0, 0, 0, 0, 6, 8],
+                        [0, 0, 8, 5, 0, 0, 0, 1, 0],
+                        [0, 9, 0, 0, 0, 0, 4, 0, 0]
+                    ],
+                    solution: [
+                        [8, 1, 2, 7, 5, 3, 6, 4, 9],
+                        [9, 4, 3, 6, 8, 2, 1, 7, 5],
+                        [6, 7, 5, 4, 9, 1, 2, 8, 3],
+                        [1, 5, 4, 2, 3, 7, 8, 9, 6],
+                        [3, 6, 9, 8, 4, 5, 7, 2, 1],
+                        [2, 8, 7, 1, 6, 9, 5, 3, 4],
+                        [5, 2, 1, 9, 7, 4, 3, 6, 8],
+                        [4, 3, 8, 5, 2, 6, 9, 1, 7],
+                        [7, 9, 6, 3, 1, 8, 4, 5, 2]
+                    ]
+                },
+                {
+                    puzzle: [
+                        [0, 0, 0, 0, 0, 0, 0, 1, 2],
+                        [0, 0, 0, 0, 3, 5, 0, 0, 0],
+                        [0, 0, 0, 6, 0, 0, 0, 7, 0],
+                        [7, 0, 0, 0, 0, 0, 3, 0, 0],
+                        [0, 0, 0, 4, 0, 0, 8, 0, 0],
+                        [1, 0, 0, 0, 0, 0, 0, 0, 0],
+                        [0, 0, 0, 1, 2, 0, 0, 0, 0],
+                        [0, 8, 0, 0, 0, 0, 0, 4, 0],
+                        [0, 5, 0, 0, 0, 0, 6, 0, 0]
+                    ],
+                    solution: [
+                        [6, 7, 3, 8, 9, 4, 5, 1, 2],
+                        [9, 1, 2, 7, 3, 5, 4, 8, 6],
+                        [8, 4, 5, 6, 1, 2, 9, 7, 3],
+                        [7, 9, 8, 2, 6, 1, 3, 5, 4],
+                        [5, 2, 6, 4, 7, 3, 8, 9, 1],
+                        [1, 3, 4, 5, 8, 9, 2, 6, 7],
+                        [4, 6, 9, 1, 2, 8, 7, 3, 5],
+                        [2, 8, 7, 3, 5, 6, 1, 4, 9],
+                        [3, 5, 1, 9, 4, 7, 6, 2, 8]
+                    ]
+                },
+                {
+                    puzzle: [
+                        [0, 0, 5, 3, 0, 0, 0, 0, 0],
+                        [8, 0, 0, 0, 0, 0, 0, 2, 0],
+                        [0, 7, 0, 0, 1, 0, 5, 0, 0],
+                        [4, 0, 0, 0, 0, 5, 3, 0, 0],
+                        [0, 1, 0, 0, 7, 0, 0, 0, 6],
+                        [0, 0, 3, 2, 0, 0, 0, 8, 0],
+                        [0, 6, 0, 5, 0, 0, 0, 0, 9],
+                        [0, 0, 4, 0, 0, 0, 0, 3, 0],
+                        [0, 0, 0, 0, 0, 9, 7, 0, 0]
+                    ],
+                    solution: [
+                        [1, 4, 5, 3, 2, 7, 6, 9, 8],
+                        [8, 3, 9, 6, 5, 4, 1, 2, 7],
+                        [6, 7, 2, 9, 1, 8, 5, 4, 3],
+                        [4, 9, 6, 1, 8, 5, 3, 7, 2],
+                        [2, 1, 8, 4, 7, 3, 9, 5, 6],
+                        [7, 5, 3, 2, 9, 6, 4, 8, 1],
+                        [3, 6, 7, 5, 4, 2, 8, 1, 9],
+                        [9, 8, 4, 7, 6, 1, 2, 3, 5],
+                        [5, 2, 1, 8, 3, 9, 7, 6, 4]
+                    ]
+                }
+            ]
+        };
 
         function initGame() {
             createBoard();
@@ -387,7 +611,49 @@
             container.appendChild(deleteBtn);
         }
 
+        function selectDifficulty(difficulty) {
+            currentDifficulty = difficulty;
+            
+            document.querySelectorAll('.difficulty-btn').forEach(btn => {
+                btn.classList.remove('active');
+                if (btn.dataset.difficulty === difficulty) {
+                    btn.classList.add('active');
+                }
+            });
+            
+            newGame();
+        }
+
+        function startTimer() {
+            stopTimer();
+            timerInterval = setInterval(() => {
+                seconds++;
+                updateTimerDisplay();
+            }, 1000);
+        }
+
+        function stopTimer() {
+            if (timerInterval) {
+                clearInterval(timerInterval);
+                timerInterval = null;
+            }
+        }
+
+        function resetTimer() {
+            stopTimer();
+            seconds = 0;
+            updateTimerDisplay();
+        }
+
+        function updateTimerDisplay() {
+            const minutes = Math.floor(seconds / 60);
+            const secs = seconds % 60;
+            document.getElementById('timer').textContent = 
+                `${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+        }
+
         function newGame() {
+            const puzzles = puzzlesByDifficulty[currentDifficulty];
             const randomIndex = Math.floor(Math.random() * puzzles.length);
             const puzzle = puzzles[randomIndex];
             
@@ -397,6 +663,8 @@
             updateBoard();
             clearMessage();
             selectedCell = null;
+            resetTimer();
+            startTimer();
         }
 
         function updateBoard() {
@@ -407,7 +675,7 @@
                 const col = index % 9;
                 const value = initialBoard[row][col];
                 
-                cell.classList.remove('initial', 'user-input', 'selected', 'error');
+                cell.classList.remove('initial', 'user-input', 'selected', 'error', 'conflict');
                 cell.textContent = '';
                 
                 if (value !== 0) {
@@ -428,6 +696,90 @@
             cell.classList.add('selected');
         }
 
+        function getCurrentBoardValues() {
+            const cells = document.querySelectorAll('.cell');
+            const values = [];
+            
+            for (let i = 0; i < 9; i++) {
+                values[i] = [];
+                for (let j = 0; j < 9; j++) {
+                    const index = i * 9 + j;
+                    values[i][j] = cells[index].textContent ? parseInt(cells[index].textContent) : 0;
+                }
+            }
+            return values;
+        }
+
+        function checkConflicts(row, col, num, boardValues) {
+            const conflicts = [];
+            
+            for (let j = 0; j < 9; j++) {
+                if (j !== col && boardValues[row][j] === num) {
+                    conflicts.push({ row, col: j });
+                }
+            }
+            
+            for (let i = 0; i < 9; i++) {
+                if (i !== row && boardValues[i][col] === num) {
+                    conflicts.push({ row: i, col });
+                }
+            }
+            
+            const boxRow = Math.floor(row / 3) * 3;
+            const boxCol = Math.floor(col / 3) * 3;
+            
+            for (let i = boxRow; i < boxRow + 3; i++) {
+                for (let j = boxCol; j < boxCol + 3; j++) {
+                    if (i !== row || j !== col) {
+                        if (boardValues[i][j] === num) {
+                            conflicts.push({ row: i, col: j });
+                        }
+                    }
+                }
+            }
+            
+            return conflicts;
+        }
+
+        function clearAllConflicts() {
+            document.querySelectorAll('.cell').forEach(cell => {
+                cell.classList.remove('conflict');
+            });
+        }
+
+        function highlightConflict(row, col) {
+            const index = row * 9 + col;
+            const cell = document.querySelectorAll('.cell')[index];
+            if (cell) {
+                cell.classList.add('conflict');
+            }
+        }
+
+        function checkAndHighlightConflicts() {
+            clearAllConflicts();
+            
+            const boardValues = getCurrentBoardValues();
+            let hasConflict = false;
+            
+            for (let i = 0; i < 9; i++) {
+                for (let j = 0; j < 9; j++) {
+                    const num = boardValues[i][j];
+                    if (num !== 0) {
+                        const conflicts = checkConflicts(i, j, num, boardValues);
+                        if (conflicts.length > 0) {
+                            hasConflict = true;
+                            highlightConflict(i, j);
+                            conflicts.forEach(conflict => {
+                                highlightConflict(conflict.row, conflict.col);
+                            });
+                        }
+                    }
+                }
+            }
+            
+            return hasConflict;
+        }
+
         function inputNumber(num) {
             if (!selectedCell) return;
             
@@ -439,6 +791,8 @@
             selectedCell.textContent = num;
             selectedCell.classList.remove('error');
             selectedCell.classList.add('user-input');
+            
+            checkAndHighlightConflicts();
         }
 
         function clearCell() {
@@ -451,6 +805,8 @@
             
             selectedCell.textContent = '';
             selectedCell.classList.remove('error', 'user-input');
+            
+            checkAndHighlightConflicts();
         }
 
         function clearInput() {
@@ -459,7 +815,7 @@
             cells.forEach(cell => {
                 if (!cell.classList.contains('initial')) {
                     cell.textContent = '';
-                    cell.classList.remove('error', 'user-input');
+                    cell.classList.remove('error', 'user-input', 'conflict');
                 }
             });
             
