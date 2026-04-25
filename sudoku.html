@@ -760,9 +760,22 @@
             const { row, col, index, cell } = randomCell;
             const cellKey = `${row},${col}`;
             
+            const oldValue = cell.textContent || '';
+            const oldClasses = Array.from(cell.classList);
+            
             const correctValue = solutionBoard[row][col];
             cellsUsedForHint.add(cellKey);
             hintCount++;
+            
+            historyStack.push({
+                row,
+                col,
+                oldValue,
+                oldClasses,
+                newValue: correctValue.toString(),
+                isHint: true,
+                cellKey: cellKey
+            });
             
             cell.textContent = correctValue;
             cell.classList.add('user-input', 'hint');
@@ -930,7 +943,7 @@
             }
             
             const lastAction = historyStack.pop();
-            const { row, col, oldValue, oldClasses } = lastAction;
+            const { row, col, oldValue, oldClasses, isHint, cellKey } = lastAction;
             const index = row * 9 + col;
             const cells = document.querySelectorAll('.cell');
             const cell = cells[index];
@@ -950,6 +963,14 @@
             
             if (oldClasses.includes('conflict')) {
                 cell.classList.add('conflict');
+            }
+            
+            if (isHint && cellKey) {
+                cellsUsedForHint.delete(cellKey);
+                if (hintCount > 0) {
+                    hintCount--;
+                    updateHintCountDisplay();
+                }
             }
             
             checkAndHighlightConflicts();
